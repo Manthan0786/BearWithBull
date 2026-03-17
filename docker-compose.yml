@@ -1,0 +1,72 @@
+services:
+  # IB Gateway: only opens API port after successful login. Set IB_GATEWAY_USER and
+  # IB_GATEWAY_PASSWORD in .env for auto-login; otherwise gateway stays on login screen.
+  ib-gateway:
+    image: ghcr.io/gnzsnz/ib-gateway:latest
+    container_name: ib-gateway
+    environment:
+      IB_GATEWAY_USER: "${IB_GATEWAY_USER:-}"
+      IB_GATEWAY_PASSWORD: "${IB_GATEWAY_PASSWORD:-}"
+      TRADING_MODE: "paper" # required by image: 'paper' or 'live'
+    ports:
+      - "4002:4002"  # paper trading port
+      - "4001:4001"  # live trading port (unused by default)
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 4002 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s  # allow 5 min for login/2FA before failing health
+
+  postgres:
+    image: postgres:16
+    container_name: trading-postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-trading}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-trading}"
+      POSTGRES_DB: "${POSTGRES_DB:-trading}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: trading-backend
+    env_file:
+      - .env
+    depends_on:
+      ib-gateway:
+        condition: service_started  # do not wait for healthy; backend runs without IB if gateway not logged in
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: trading-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
+  redis_data:
+

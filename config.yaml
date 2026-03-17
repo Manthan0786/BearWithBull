@@ -1,0 +1,37 @@
+trading:
+  paper_mode: true
+  allow_overnight: false
+  max_positions: 10
+  cash_reserve_pct: 0.20
+  daily_loss_limit_pct: 0.03
+  max_daily_trades: 20
+  consecutive_loss_circuit_breaker: 4
+  circuit_breaker_pause_minutes: 120
+
+strategies:
+  momentum_breakout:
+    enabled: true
+    risk_per_trade_pct: 0.005
+    max_concurrent: 3
+  stat_mean_reversion:
+    enabled: true
+    risk_per_trade_pct: 0.004
+    max_concurrent: 3
+    vix_threshold: 25
+  sentiment_catalyst:
+    enabled: true
+    risk_per_trade_pct: 0.0025
+    max_concurrent: 2
+    sentiment_threshold: 0.70
+    max_hold_minutes: 90
+
+watchlist:
+  - AAPL
+  - MSFT
+  - NVDA
+  - AMZN
+  - META
+  - GOOGL
+  - JPM
+  - BAC
+
